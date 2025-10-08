@@ -78,8 +78,8 @@ const basePayload = {
   }
 };
 
-if (!basePayload.headers.Authorization) {
-  delete basePayload.headers.Authorization;
+if (!BROWSERBASE_SERVER_SECRET) {
+  delete basePayload.headers.properties.Authorization;
 }
 
 const upsertTool = async () => {

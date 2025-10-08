@@ -119,7 +119,7 @@ export const fetchBroomeAvailability = async ({
 
   try {
     const page = stagehand.page;
-    await page.goto(BOOKING_URL, { waitUntil: 'networkidle0' });
+    await page.goto(BOOKING_URL, { waitUntil: 'networkidle' });
 
     await page.act(buildSearchInstruction({ checkInDate, checkOutDate, adults, children, rooms }));
 
