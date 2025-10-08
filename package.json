@@ -1,0 +1,19 @@
+{
+  "name": "broome-concierge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "assistant:create": "node src/configureAssistant.js",
+    "assistant:update": "node src/configureAssistant.js --assistant-id=$ASSISTANT_ID",
+    "assistant:preview": "node src/configureAssistant.js --dry-run",
+    "browserbase:server": "node src/server.js"
+  },
+  "dependencies": {
+    "@browserbasehq/stagehand": "^2.5.2",
+    "@vapi-ai/server-sdk": "^0.10.2",
+    "dotenv": "^16.4.5",
+    "express": "^5.1.0",
+    "zod": "^3.25.67"
+  }
+}
