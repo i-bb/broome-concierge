@@ -45,6 +45,15 @@ const ensureConfig = (connectCall) => {
   return config;
 };
 
+const normalizeList = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.map((item) => `${item}`.trim()).filter(Boolean);
+  }
+  const single = `${value}`.trim();
+  return single ? [single] : [];
+};
+
 const buildStaffMessage = ({
   guestStatus,
   guestName,
@@ -54,20 +63,33 @@ const buildStaffMessage = ({
   mood,
   transferReason
 }) => {
-  const identifierParts = [guestStatus, guestName].filter(Boolean);
+  const identifierParts = [guestStatus, guestName].map((part) => (part ? part.trim() : '')).filter(Boolean);
   const identifier = identifierParts.length > 0 ? identifierParts.join(' - ') : 'Guest';
 
-  const contactSegment = guestContact ? ` | Contact: ${guestContact}` : '';
-  const requestSegment = summary ? ` | Request: ${summary}` : '';
+  const lines = [`Broome Concierge | ${identifier}`];
 
-  const actionSegment = actionItems && actionItems.length
-    ? ` | Next steps: ${Array.isArray(actionItems) ? actionItems.join(' // ') : actionItems}`
-    : '';
+  if (guestContact && guestContact.trim()) {
+    lines.push(`Contact: ${guestContact.trim()}`);
+  }
 
-  const reasonSegment = transferReason ? ` | Transfer reason: ${transferReason}` : '';
-  const moodSegment = mood ? ` | Mood: ${mood}` : '';
+  if (summary && summary.trim()) {
+    lines.push(`Request: ${summary.trim()}`);
+  }
 
-  return `Broome Concierge | ${identifier}${contactSegment}${requestSegment}${actionSegment}${reasonSegment}${moodSegment}`.trim();
+  const normalizedActions = normalizeList(actionItems);
+  if (normalizedActions.length > 0) {
+    lines.push(`Next steps: ${normalizedActions.join(' | ')}`);
+  }
+
+  if (transferReason && transferReason.trim()) {
+    lines.push(`Transfer reason: ${transferReason.trim()}`);
+  }
+
+  if (mood && mood.trim()) {
+    lines.push(`Mood: ${mood.trim()}`);
+  }
+
+  return lines.join('\n');
 };
 
 /**

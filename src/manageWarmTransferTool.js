@@ -57,7 +57,7 @@ const basePayload = {
       },
       guestStatus: {
         type: 'string',
-        description: 'Guest classification (Prospect or In-house with room number when known).'
+        description: 'Guest classification (Prospect or In-house with room number when known, e.g., "In-house (Room 302)").'
       },
       guestName: {
         type: 'string',
