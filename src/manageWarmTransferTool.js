@@ -24,7 +24,7 @@ const basePayload = {
   type: 'apiRequest',
   name: 'warmTransfer',
   description:
-    'Coordinates warm handoff by sending an SMS summary to the front desk and preparing a Twilio bridge number.',
+    'Sends an SMS summary to the front desk and, when requested, initiates a Twilio bridge number for live transfer.',
   method: 'POST',
   url: WARM_TRANSFER_ENDPOINT,
   timeoutSeconds: 30,
@@ -85,6 +85,11 @@ const basePayload = {
       transferReason: {
         type: 'string',
         description: 'Why the transfer is being initiated.'
+      },
+      connectCall: {
+        type: 'string',
+        description:
+          'Set to "bridge" only when the guest explicitly asks to speak with the front desk or the request requires live escalation. Omit for SMS-only notifications.'
       }
     }
   }
