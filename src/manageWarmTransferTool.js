@@ -53,7 +53,7 @@ const basePayload = {
     properties: {
       callId: {
         type: 'string',
-        description: 'Identifier for the active Vapi call. Use conversationId.'
+        description: 'Identifier for the active Vapi call. Pass the live conversationId exactly as provided.'
       },
       guestStatus: {
         type: 'string',
