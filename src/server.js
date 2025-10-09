@@ -46,7 +46,7 @@ app.post('/browserbase/availability', async (req, res) => {
 });
 
 const warmTransferSchema = z.object({
-  callId: z.string().min(1),
+  callId: z.string().optional(),
   guestStatus: z.string().min(1),
   guestName: z.string().optional(),
   guestContact: z.string().optional(),
@@ -65,8 +65,22 @@ app.post('/tools/warm-transfer', async (req, res) => {
     }
 
     const payload = warmTransferSchema.parse(req.body || {});
+    const headerConversationId =
+      typeof req.headers['x-vapi-conversation-id'] === 'string'
+        ? req.headers['x-vapi-conversation-id']
+        : undefined;
+
+    const resolvedCallId = payload.callId && payload.callId.trim().length > 0
+      ? payload.callId.trim()
+      : headerConversationId;
+
+    if (!resolvedCallId) {
+      throw new Error('Missing call identifier. Provide callId or ensure x-vapi-conversation-id header is set.');
+    }
+
     const result = await initiateWarmTransfer({
       ...payload,
+      callId: resolvedCallId,
       connectCall: payload.connectCall === true || payload.connectCall === 'bridge'
     });
 

@@ -1,4 +1,5 @@
 import twilio from 'twilio';
+import { randomUUID } from 'crypto';
 
 const SMS_ENV_VARS = {
   TWILIO_ACCOUNT_SID: 'Twilio account SID',
@@ -72,7 +73,7 @@ const buildStaffMessage = ({
 /**
  * Sends an SMS summary to the front desk and optionally dials them into a shared conference for live transfer.
  * @param {Object} params
- * @param {string} params.callId - Identifier from Vapi for the active call.
+ * @param {string} [params.callId] - Identifier from Vapi for the active call; defaults to a generated UUID.
  * @param {string} params.guestStatus - Guest classification such as "Prospect" or "In-house".
  * @param {string} [params.guestName] - Guest name if collected.
  * @param {string} [params.guestContact] - Guest phone number or room number.
@@ -94,10 +95,6 @@ export const initiateWarmTransfer = async ({
   transferReason,
   connectCall = false
 }) => {
-  if (!callId) {
-    throw new Error('callId is required to initiate warm transfer.');
-  }
-
   if (!guestStatus) {
     throw new Error('guestStatus is required (e.g., Prospect or In-house).');
   }
@@ -107,6 +104,7 @@ export const initiateWarmTransfer = async ({
   }
 
   const config = ensureConfig(connectCall);
+  const effectiveCallId = callId && callId.trim() ? callId.trim() : randomUUID();
   const client = twilio(config.TWILIO_ACCOUNT_SID, config.TWILIO_AUTH_TOKEN);
 
   const message = await client.messages.create({
@@ -132,7 +130,7 @@ export const initiateWarmTransfer = async ({
     };
   }
 
-  const conferenceName = `broome-${callId}`;
+  const conferenceName = `broome-${effectiveCallId}`;
   const voiceUrl = new URL('/twilio/voice/join-conference', config.PUBLIC_SERVER_URL);
   voiceUrl.searchParams.set('conference', conferenceName);
 
