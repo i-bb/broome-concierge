@@ -1,6 +1,74 @@
 import twilio from 'twilio';
 import { randomUUID } from 'crypto';
 
+const BRIDGE_ENTRY_TTL_MS = 10 * 60 * 1000;
+const BRIDGE_REUSE_WINDOW_MS = 60 * 1000;
+
+const normalizeBridgeNumber = (value) => {
+  if (typeof value !== 'string') return '';
+  return value.replace(/[\s-]/g, '');
+};
+
+const activeBridgeQueues = new Map();
+
+const cleanupQueue = (queue) => {
+  if (!Array.isArray(queue) || queue.length === 0) {
+    return [];
+  }
+  const now = Date.now();
+  while (queue.length > 0) {
+    const entry = queue[0];
+    if (!entry) {
+      queue.shift();
+      continue;
+    }
+    if (entry.expiresAt <= now) {
+      queue.shift();
+      continue;
+    }
+    if (typeof entry.lastServedAt === 'number' && entry.lastServedAt + BRIDGE_REUSE_WINDOW_MS <= now) {
+      queue.shift();
+      continue;
+    }
+    break;
+  }
+  return queue;
+};
+
+const registerBridgeConference = (bridgeNumber, conferenceName) => {
+  const normalized = normalizeBridgeNumber(bridgeNumber);
+  if (!normalized || !conferenceName) {
+    return;
+  }
+
+  const queue = cleanupQueue(activeBridgeQueues.get(normalized) ?? []);
+  queue.push({
+    conferenceName,
+    expiresAt: Date.now() + BRIDGE_ENTRY_TTL_MS,
+    lastServedAt: undefined
+  });
+  activeBridgeQueues.set(normalized, queue);
+};
+
+export const getActiveBridgeConference = (bridgeNumber) => {
+  const normalized = normalizeBridgeNumber(bridgeNumber);
+  if (!normalized) {
+    return null;
+  }
+
+  const queue = cleanupQueue(activeBridgeQueues.get(normalized) ?? []);
+
+  if (queue.length === 0) {
+    activeBridgeQueues.delete(normalized);
+    return null;
+  }
+
+  const entry = queue[0];
+  entry.lastServedAt = Date.now();
+  activeBridgeQueues.set(normalized, queue);
+  return entry.conferenceName;
+};
+
 const SMS_ENV_VARS = {
   TWILIO_ACCOUNT_SID: 'Twilio account SID',
   TWILIO_AUTH_TOKEN: 'Twilio auth token',
@@ -41,6 +109,26 @@ const ensureConfig = (connectCall) => {
       config[key] = process.env[key];
     }
   });
+
+  if (connectCall) {
+    try {
+      const parsed = new URL(config.PUBLIC_SERVER_URL);
+      if (parsed.protocol !== 'https:') {
+        throw new Error('PUBLIC_SERVER_URL must use HTTPS.');
+      }
+
+      const hostname = parsed.hostname.toLowerCase();
+      if (hostname === 'localhost' || hostname.endsWith('.local')) {
+        throw new Error('PUBLIC_SERVER_URL must be publicly reachable for Twilio webhooks.');
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Invalid PUBLIC_SERVER_URL. Provide a valid HTTPS base URL accessible by Twilio.';
+      throw new Error(message);
+    }
+  }
 
   return config;
 };
@@ -168,6 +256,8 @@ export const initiateWarmTransfer = async ({
   }
 
   const call = await client.calls.create(callPayload);
+
+  registerBridgeConference(config.TWILIO_BRIDGE_NUMBER, conferenceName);
 
   return {
     conferenceName,

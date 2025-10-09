@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import { z } from 'zod';
 import fetchBroomeAvailability from './services/browserbaseAvailability.js';
-import initiateWarmTransfer from './services/warmTransfer.js';
+import initiateWarmTransfer, { getActiveBridgeConference } from './services/warmTransfer.js';
 
 const app = express();
 app.use(express.json());
@@ -131,7 +131,31 @@ app.post(
   '/twilio/voice/join-conference',
   express.urlencoded({ extended: false }),
   (req, res) => {
-    const conferenceName = extractConferenceName(req);
+    let conferenceName = extractConferenceName(req);
+
+    if (!conferenceName) {
+      const candidates = new Set();
+
+      if (typeof req.body?.To === 'string') {
+        candidates.add(req.body.To.trim());
+      }
+
+      if (typeof req.body?.Called === 'string') {
+        candidates.add(req.body.Called.trim());
+      }
+
+      if (typeof process.env.TWILIO_BRIDGE_NUMBER === 'string') {
+        candidates.add(process.env.TWILIO_BRIDGE_NUMBER.trim());
+      }
+
+      for (const candidate of candidates) {
+        const resolved = getActiveBridgeConference(candidate);
+        if (resolved) {
+          conferenceName = resolved;
+          break;
+        }
+      }
+    }
 
     if (!conferenceName) {
       return res
