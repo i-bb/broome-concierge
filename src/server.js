@@ -53,7 +53,8 @@ const warmTransferSchema = z.object({
   summary: z.string().min(1),
   actionItems: z.union([z.string(), z.array(z.string())]).optional(),
   mood: z.string().optional(),
-  transferReason: z.string().optional()
+  transferReason: z.string().optional(),
+  connectCall: z.union([z.boolean(), z.literal('bridge')]).optional()
 });
 
 app.post('/tools/warm-transfer', async (req, res) => {
@@ -64,7 +65,10 @@ app.post('/tools/warm-transfer', async (req, res) => {
     }
 
     const payload = warmTransferSchema.parse(req.body || {});
-    const result = await initiateWarmTransfer(payload);
+    const result = await initiateWarmTransfer({
+      ...payload,
+      connectCall: payload.connectCall === true || payload.connectCall === 'bridge'
+    });
 
     res.json({ success: true, data: result });
   } catch (error) {

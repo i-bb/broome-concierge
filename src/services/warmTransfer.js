@@ -1,10 +1,13 @@
 import twilio from 'twilio';
 
-const REQUIRED_ENV_VARS = {
+const SMS_ENV_VARS = {
   TWILIO_ACCOUNT_SID: 'Twilio account SID',
   TWILIO_AUTH_TOKEN: 'Twilio auth token',
   TWILIO_SMS_FROM: 'Twilio SMS-enabled sender number (E.164)',
-  FRONT_DESK_SMS_TO: 'Front desk SMS recipient number (E.164)',
+  FRONT_DESK_SMS_TO: 'Front desk SMS recipient number (E.164)'
+};
+
+const VOICE_ENV_VARS = {
   TWILIO_VOICE_FROM: 'Twilio voice-enabled caller ID (E.164)',
   FRONT_DESK_PHONE_NUMBER: 'Front desk destination phone number (E.164)',
   TWILIO_BRIDGE_NUMBER: 'Twilio bridge phone number provided to Vapi transferCall (E.164)',
@@ -23,8 +26,11 @@ const getEnv = (key, label) => {
   return value;
 };
 
-const ensureConfig = () => {
-  const config = Object.entries(REQUIRED_ENV_VARS).reduce((acc, [key, description]) => {
+const ensureConfig = (connectCall) => {
+  const config = Object.entries({
+    ...SMS_ENV_VARS,
+    ...(connectCall ? VOICE_ENV_VARS : {})
+  }).reduce((acc, [key, description]) => {
     acc[key] = getEnv(key, description);
     return acc;
   }, {});
@@ -64,7 +70,7 @@ const buildStaffMessage = ({
 };
 
 /**
- * Initiates Twilio warm transfer sequence: sends an SMS summary and dials the front desk into a shared conference.
+ * Sends an SMS summary to the front desk and optionally dials them into a shared conference for live transfer.
  * @param {Object} params
  * @param {string} params.callId - Identifier from Vapi for the active call.
  * @param {string} params.guestStatus - Guest classification such as "Prospect" or "In-house".
@@ -74,7 +80,8 @@ const buildStaffMessage = ({
  * @param {string[]|string} [params.actionItems] - Promised follow-ups or tasks.
  * @param {string} [params.mood] - Brief mood descriptor.
  * @param {string} [params.transferReason] - Reason the call is being transferred.
- * @returns {Promise<{ conferenceName: string, bridgeNumber: string, messageSid: string, callSid: string }>}
+ * @param {boolean} [params.connectCall] - Whether to initiate a live bridge to the front desk.
+ * @returns {Promise<{ conferenceName: string | null, bridgeNumber: string | null, messageSid: string, callSid: string | null }>}
  */
 export const initiateWarmTransfer = async ({
   callId,
@@ -84,7 +91,8 @@ export const initiateWarmTransfer = async ({
   summary,
   actionItems,
   mood,
-  transferReason
+  transferReason,
+  connectCall = false
 }) => {
   if (!callId) {
     throw new Error('callId is required to initiate warm transfer.');
@@ -98,7 +106,7 @@ export const initiateWarmTransfer = async ({
     throw new Error('summary is required to brief the front desk.');
   }
 
-  const config = ensureConfig();
+  const config = ensureConfig(connectCall);
   const client = twilio(config.TWILIO_ACCOUNT_SID, config.TWILIO_AUTH_TOKEN);
 
   const message = await client.messages.create({
@@ -114,6 +122,15 @@ export const initiateWarmTransfer = async ({
       transferReason
     })
   });
+
+  if (!connectCall) {
+    return {
+      conferenceName: null,
+      bridgeNumber: null,
+      messageSid: message.sid,
+      callSid: null
+    };
+  }
 
   const conferenceName = `broome-${callId}`;
   const voiceUrl = new URL('/twilio/voice/join-conference', config.PUBLIC_SERVER_URL);
