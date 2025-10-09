@@ -267,4 +267,33 @@ export const initiateWarmTransfer = async ({
   };
 };
 
+export const placeFrontDeskTestCall = async () => {
+  const config = ensureConfig(true);
+  const client = twilio(config.TWILIO_ACCOUNT_SID, config.TWILIO_AUTH_TOKEN);
+
+  const conferenceName = `broome-test-${Date.now()}`;
+  const voiceUrl = new URL('/twilio/voice/join-conference', config.PUBLIC_SERVER_URL);
+  voiceUrl.searchParams.set('conference', conferenceName);
+
+  const callPayload = {
+    from: config.TWILIO_VOICE_FROM,
+    to: config.FRONT_DESK_PHONE_NUMBER,
+    url: voiceUrl.toString()
+  };
+
+  if (config.TWILIO_STATUS_CALLBACK_URL) {
+    callPayload.statusCallback = config.TWILIO_STATUS_CALLBACK_URL;
+    callPayload.statusCallbackEvent = ['initiated', 'ringing', 'answered', 'completed'];
+  }
+
+  const call = await client.calls.create(callPayload);
+
+  return {
+    callSid: call.sid,
+    conferenceName,
+    dialedNumber: config.FRONT_DESK_PHONE_NUMBER,
+    voiceUrl: voiceUrl.toString()
+  };
+};
+
 export default initiateWarmTransfer;

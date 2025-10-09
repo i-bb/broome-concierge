@@ -2,7 +2,10 @@ import 'dotenv/config';
 import express from 'express';
 import { z } from 'zod';
 import fetchBroomeAvailability from './services/browserbaseAvailability.js';
-import initiateWarmTransfer, { getActiveBridgeConference } from './services/warmTransfer.js';
+import initiateWarmTransfer, {
+  getActiveBridgeConference,
+  placeFrontDeskTestCall
+} from './services/warmTransfer.js';
 
 const app = express();
 app.use(express.json());
@@ -173,6 +176,50 @@ app.post(
       );
   }
 );
+
+app.get('/test/front-desk-call', async (req, res) => {
+  try {
+    const expectedSecret =
+      process.env.TEST_FRONT_DESK_CALL_SECRET || process.env.WARM_TRANSFER_SERVER_SECRET;
+
+    if (expectedSecret) {
+      const headerAuthorized = parseAuthorization(req, expectedSecret);
+      const querySecret =
+        typeof req.query?.secret === 'string' && req.query.secret.trim() === expectedSecret;
+
+      if (!headerAuthorized && !querySecret) {
+        return res.status(401).type('text/plain').send('Unauthorized');
+      }
+    }
+
+    const result = await placeFrontDeskTestCall();
+
+    res
+      .status(200)
+      .type('text/html')
+      .send(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Front Desk Call Triggered</title>
+    <style>
+      body { font-family: sans-serif; margin: 2rem; line-height: 1.6; }
+      code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <h1>Front Desk Call Triggered</h1>
+    <p>Twilio is dialing <strong>${result.dialedNumber}</strong> using call SID <code>${result.callSid}</code>.</p>
+    <p>If answered, the call will join conference <code>${result.conferenceName}</code>.</p>
+    <p>Twilio will fetch instructions from <code>${result.voiceUrl}</code>.</p>
+    <p>You can close this tab once the test completes.</p>
+  </body>
+</html>`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).type('application/json').send({ success: false, error: message });
+  }
+});
 
 const port = Number(process.env.PORT) || 8787;
 
