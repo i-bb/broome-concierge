@@ -49,11 +49,12 @@ const basePayload = {
   },
   body: {
     type: 'object',
-    required: ['callId', 'guestStatus', 'summary'],
+    required: ['guestStatus', 'summary'],
     properties: {
       callId: {
         type: 'string',
-        description: 'Identifier for the active Vapi call. Pass the live conversationId exactly as provided.'
+        description:
+          'Optional identifier for the active call. Provide it only when the true conversationId is available—never send template placeholders.'
       },
       guestStatus: {
         type: 'string',
@@ -102,7 +103,8 @@ if (!WARM_TRANSFER_SERVER_SECRET) {
 const upsertTool = async () => {
   try {
     if (WARM_TRANSFER_TOOL_ID) {
-      const updated = await client.tools.update(WARM_TRANSFER_TOOL_ID, basePayload);
+      const { type: _omitType, ...updatePayload } = basePayload;
+      const updated = await client.tools.update(WARM_TRANSFER_TOOL_ID, updatePayload);
       console.log('Updated warm transfer tool:', updated.id);
     } else {
       const created = await client.tools.create(basePayload);

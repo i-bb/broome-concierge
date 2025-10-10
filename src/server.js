@@ -81,10 +81,6 @@ app.post('/tools/warm-transfer', async (req, res) => {
       return headerConversationId?.trim();
     })(payload.callId);
 
-    if (!resolvedCallId) {
-      throw new Error('Missing call identifier. Provide callId or ensure x-vapi-conversation-id header is set.');
-    }
-
     const result = await initiateWarmTransfer({
       ...payload,
       callId: resolvedCallId,
