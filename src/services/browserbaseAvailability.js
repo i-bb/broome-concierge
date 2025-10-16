@@ -309,7 +309,7 @@ const buildSearchInstruction = ({ checkInDate, checkOutDate, adults, children, r
   - Adults: ${adults}
   - Children: ${children}
 
-Submit the search and wait for the availability results to finish loading before proceeding.`;
+Use the exact ISO dates provided above (do not substitute another year) and submit the search. Wait for the availability results to finish loading before proceeding.`;
 
 const buildExtractionInstruction = ({ checkInDate, checkOutDate, adults, children, rooms }) =>
   `After searching the Broome booking engine for:
@@ -320,7 +320,7 @@ const buildExtractionInstruction = ({ checkInDate, checkOutDate, adults, childre
 Review the availability grid.
 If no accommodations are available, set status to "UNAVAILABLE" and explain which dates or categories are sold out in summary.
 If accommodations are available, set status to "AVAILABLE" and list each bookable room or package with the displayed nightly rate (include currency symbol), any total stay price noted on the page, and key cancellation or inclusion details.
-Summaries should reference the searched dates so the concierge can cite them back to the guest. Write the summary as one or two warm sentences (no bullet points) that weave in the exact stay dates formatted as "Month DD, YYYY" using the year supplied in the search, and highlight notable inclusions naturally.`;
+Summaries should reference the searched dates so the concierge can cite them back to the guest. Write the summary as one or two warm sentences (no bullet points) that weave in the exact stay dates formatted as "Month DD, YYYY" using the year supplied in the search (never a different year), and highlight notable inclusions naturally.`;
 
 /**
  * @typedef {Object} AvailabilityParams
