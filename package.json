@@ -7,7 +7,8 @@
     "assistant:create": "node src/configureAssistant.js",
     "assistant:update": "node src/configureAssistant.js --assistant-id=$ASSISTANT_ID",
     "assistant:preview": "node src/configureAssistant.js --dry-run",
-    "browserbase:server": "node src/server.js"
+    "browserbase:server": "node src/server.js",
+    "transfer-tool:update": "node src/manageTransferCallTool.js"
   },
   "dependencies": {
     "@browserbasehq/stagehand": "^2.5.2",

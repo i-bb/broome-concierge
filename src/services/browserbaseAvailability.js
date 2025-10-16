@@ -11,6 +11,37 @@ const startOfDay = (date) => {
   return result;
 };
 
+const parseReferenceDate = () => {
+  const raw = process.env.CONCIERGE_REFERENCE_DATE || '2025-10-16';
+  const normalized = typeof raw === 'string' && raw.trim() ? raw.trim() : '2025-10-16';
+  const parsed = new Date(`${normalized}T00:00:00Z`);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return startOfDay(new Date('2025-10-16T00:00:00Z'));
+  }
+
+  return startOfDay(parsed);
+};
+
+const REFERENCE_DATE = parseReferenceDate();
+
+const getReferenceToday = () => new Date(REFERENCE_DATE.getTime());
+
+const alignToReferenceYear = (date, reference) => {
+  const cloned = new Date(date.getTime());
+
+  if (cloned.getFullYear() < reference.getFullYear()) {
+    const monthDiff = cloned.getMonth() - reference.getMonth();
+    const dayDiff = cloned.getDate() - reference.getDate();
+    const targetYear = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)
+      ? reference.getFullYear() + 1
+      : reference.getFullYear();
+    cloned.setFullYear(targetYear);
+  }
+
+  return cloned;
+};
+
 const parseISODateStrict = (value, label) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -31,8 +62,8 @@ const ensureFutureDates = (rawCheckIn, rawCheckOut) => {
     )
   );
 
-  let adjustedCheckIn = new Date(originalCheckIn.getTime());
-  const today = startOfDay(new Date());
+  let adjustedCheckIn = alignToReferenceYear(originalCheckIn, getReferenceToday());
+  const today = startOfDay(getReferenceToday());
 
   while (startOfDay(adjustedCheckIn) < today) {
     adjustedCheckIn.setFullYear(adjustedCheckIn.getFullYear() + 1);
@@ -378,6 +409,7 @@ export const fetchBroomeAvailability = async ({
       },
       meta: {
         generatedAt: new Date().toISOString(),
+        referenceDateISO: REFERENCE_DATE.toISOString(),
         ...(availability.summary ? { rawSummary: availability.summary } : {})
       }
     };
