@@ -149,6 +149,16 @@ app.post(
   '/twilio/voice/join-conference',
   express.urlencoded({ extended: false }),
   (req, res) => {
+    try {
+      console.log('[Twilio join-conference] inbound request', {
+        queryConference: req.query?.conference ?? null,
+        to: req.body?.To ?? null,
+        called: req.body?.Called ?? null,
+        bridgeNumberEnv: process.env.TWILIO_BRIDGE_NUMBER ?? null
+      });
+    } catch (error) {
+      console.warn('[Twilio join-conference] failed to log request', error);
+    }
     let conferenceName = extractConferenceName(req);
 
     if (!conferenceName) {
@@ -176,6 +186,10 @@ app.post(
     }
 
     if (!conferenceName) {
+      console.warn('[Twilio join-conference] missing conference identifier for request', {
+        to: req.body?.To ?? null,
+        called: req.body?.Called ?? null
+      });
       return res
         .status(400)
         .type('application/json')
