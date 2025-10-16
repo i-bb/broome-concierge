@@ -84,6 +84,12 @@ app.post('/tools/warm-transfer', async (req, res) => {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
+    console.log('[Warm transfer webhook] received request', {
+      connectCall: req.body?.connectCall ?? null,
+      guestStatus: req.body?.guestStatus ?? null,
+      transferReason: req.body?.transferReason ?? null
+    });
+
     const payload = warmTransferSchema.parse(req.body || {});
     const headerConversationId =
       typeof req.headers['x-vapi-conversation-id'] === 'string'
@@ -99,11 +105,24 @@ app.post('/tools/warm-transfer', async (req, res) => {
       return headerConversationId?.trim();
     })(payload.callId);
 
+    const willBridge = payload.connectCall === true || payload.connectCall === 'bridge';
+    console.log('[Warm transfer webhook] computed bridge decision', {
+      rawConnectCall: payload.connectCall,
+      willBridge,
+      guestCallSid: guestCallSid ?? null
+    });
+
     const result = await initiateWarmTransfer({
       ...payload,
       callId: resolvedCallId,
-      connectCall: payload.connectCall === true || payload.connectCall === 'bridge',
+      connectCall: willBridge,
       guestCallSid
+    });
+
+    console.log('[Warm transfer webhook] result', {
+      bridgeNumber: result.bridgeNumber ?? null,
+      callSid: result.callSid ?? null,
+      conferenceName: result.conferenceName ?? null
     });
 
     res.json({ success: true, data: result });

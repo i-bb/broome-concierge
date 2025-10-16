@@ -89,8 +89,9 @@ const basePayload = {
       },
       connectCall: {
         type: 'string',
+        enum: ['bridge'],
         description:
-          'Set to "bridge" only when the guest explicitly asks to speak with the front desk or the request requires live escalation. Omit for SMS-only notifications.'
+          'REQUIRED when initiating a live transfer: must be set to the string literal "bridge". When the guest explicitly consents to speak with the front desk (e.g., "yes", "please connect me"), you MUST include this parameter with the value "bridge". When sending an SMS-only notification (no live transfer), omit this parameter entirely.'
       }
     }
   }
