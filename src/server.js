@@ -60,6 +60,23 @@ const warmTransferSchema = z.object({
   connectCall: z.union([z.boolean(), z.literal('bridge')]).optional()
 });
 
+const extractGuestCallSid = (req) => {
+  const headerCandidates = [
+    req.headers['x-vapi-twilio-call-sid'],
+    req.headers['x-vapi-call-sid'],
+    req.headers['x-twilio-call-sid'],
+    req.headers['x-call-sid']
+  ];
+
+  for (const candidate of headerCandidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  return undefined;
+};
+
 app.post('/tools/warm-transfer', async (req, res) => {
   try {
     const expectedSecret = process.env.WARM_TRANSFER_SERVER_SECRET;
@@ -72,6 +89,7 @@ app.post('/tools/warm-transfer', async (req, res) => {
       typeof req.headers['x-vapi-conversation-id'] === 'string'
         ? req.headers['x-vapi-conversation-id']
         : undefined;
+    const guestCallSid = extractGuestCallSid(req);
 
     const resolvedCallId = ((raw) => {
       const trimmed = raw?.trim();
@@ -84,7 +102,8 @@ app.post('/tools/warm-transfer', async (req, res) => {
     const result = await initiateWarmTransfer({
       ...payload,
       callId: resolvedCallId,
-      connectCall: payload.connectCall === true || payload.connectCall === 'bridge'
+      connectCall: payload.connectCall === true || payload.connectCall === 'bridge',
+      guestCallSid
     });
 
     res.json({ success: true, data: result });

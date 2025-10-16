@@ -203,7 +203,8 @@ export const initiateWarmTransfer = async ({
   actionItems,
   mood,
   transferReason,
-  connectCall = false
+  connectCall = false,
+  guestCallSid
 }) => {
   if (!guestStatus) {
     throw new Error('guestStatus is required (e.g., Prospect or In-house).');
@@ -231,13 +232,16 @@ export const initiateWarmTransfer = async ({
     })
   });
 
+  const baseResult = {
+    conferenceName: null,
+    bridgeNumber: null,
+    messageSid: message.sid,
+    callSid: null,
+    guestConferenceUpdate: null
+  };
+
   if (!connectCall) {
-    return {
-      conferenceName: null,
-      bridgeNumber: null,
-      messageSid: message.sid,
-      callSid: null
-    };
+    return baseResult;
   }
 
   const conferenceName = `broome-${effectiveCallId}`;
@@ -259,11 +263,34 @@ export const initiateWarmTransfer = async ({
 
   registerBridgeConference(config.TWILIO_BRIDGE_NUMBER, conferenceName);
 
+  let guestConferenceUpdate = null;
+
+  if (guestCallSid && guestCallSid.trim()) {
+    try {
+      await client.calls(guestCallSid.trim()).update({
+        method: 'POST',
+        url: voiceUrl.toString()
+      });
+      guestConferenceUpdate = {
+        callSid: guestCallSid.trim(),
+        url: voiceUrl.toString()
+      };
+    } catch (error) {
+      console.warn('Failed to move caller into bridge conference', {
+        callSid: guestCallSid,
+        error: error instanceof Error ? error.message : error
+      });
+    }
+  } else {
+    console.warn('Missing guestCallSid for live bridge conference');
+  }
+
   return {
     conferenceName,
     bridgeNumber: config.TWILIO_BRIDGE_NUMBER,
     messageSid: message.sid,
-    callSid: call.sid
+    callSid: call.sid,
+    guestConferenceUpdate
   };
 };
 
