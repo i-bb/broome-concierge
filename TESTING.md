@@ -54,6 +54,15 @@ To properly test transfers, you **must** call the actual Vapi phone number assig
 6. Both parties are now in the same Twilio conference
 7. Vapi assistant exits, Twilio keeps connection alive
 
+### Date Handling
+
+The assistant will:
+- Say dates as "December 8 to December 10" **without mentioning the year**
+- Send full dates with year to front desk in warmTransfer SMS (e.g., "December 8, 2025 to December 10, 2025")
+- Let the front desk confirm the complete dates with the guest during booking
+
+This prevents any confusion from the LLM potentially stating an incorrect year while ensuring the front desk has accurate information.
+
 ## Expected Flow (Web Test) - Transfers Will Fail
 
 1. User tests on Vapi web interface → No Twilio call SID
