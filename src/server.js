@@ -68,12 +68,21 @@ const extractGuestCallSid = (req) => {
     req.headers['x-call-sid']
   ];
 
+  console.log('[Extract guest call SID] headers inspection', {
+    'x-vapi-twilio-call-sid': req.headers['x-vapi-twilio-call-sid'] ?? null,
+    'x-vapi-call-sid': req.headers['x-vapi-call-sid'] ?? null,
+    'x-twilio-call-sid': req.headers['x-twilio-call-sid'] ?? null,
+    'x-call-sid': req.headers['x-call-sid'] ?? null
+  });
+
   for (const candidate of headerCandidates) {
     if (typeof candidate === 'string' && candidate.trim()) {
+      console.log('[Extract guest call SID] found valid call SID', { callSid: candidate.trim() });
       return candidate.trim();
     }
   }
 
+  console.warn('[Extract guest call SID] no valid call SID found in headers');
   return undefined;
 };
 

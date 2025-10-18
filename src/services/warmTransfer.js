@@ -265,9 +265,15 @@ export const initiateWarmTransfer = async ({
 
   let guestConferenceUpdate = null;
 
+  console.log('[Warm transfer] attempting to move guest into conference', {
+    guestCallSid: guestCallSid ?? null,
+    conferenceName,
+    voiceUrl: voiceUrl.toString()
+  });
+
   if (guestCallSid && guestCallSid.trim()) {
     try {
-      await client.calls(guestCallSid.trim()).update({
+      const updateResult = await client.calls(guestCallSid.trim()).update({
         method: 'POST',
         url: voiceUrl.toString()
       });
@@ -275,14 +281,20 @@ export const initiateWarmTransfer = async ({
         callSid: guestCallSid.trim(),
         url: voiceUrl.toString()
       };
+      console.log('[Warm transfer] successfully updated guest call to join conference', {
+        callSid: guestCallSid.trim(),
+        status: updateResult.status
+      });
     } catch (error) {
-      console.warn('Failed to move caller into bridge conference', {
+      console.error('[Warm transfer] failed to move guest into conference', {
         callSid: guestCallSid,
-        error: error instanceof Error ? error.message : error
+        conferenceName,
+        error: error instanceof Error ? error.message : error,
+        errorCode: error?.code ?? null
       });
     }
   } else {
-    console.warn('Missing guestCallSid for live bridge conference');
+    console.warn('[Warm transfer] missing guestCallSid - guest will not join conference (likely web test)');
   }
 
   return {
